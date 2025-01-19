@@ -1,0 +1,61 @@
+import pandas as pd
+
+# Load the dataset
+df = pd.read_csv("/Users/gillianmondero/Downloads/customers_data.csv")
+
+# Display the first few rows of the dataset to understand its structure
+df.head()
+
+# Remove duplicates
+df = df.drop_duplicates()
+
+# Identify missing or non-sequential Company_IDs
+existing_ids = df['Company_ID'].dropna().astype(int).tolist()
+all_ids = list(range(1, 101))
+missing_values = sorted(set(all_ids) - set(existing_ids))
+
+# Fill missing Company_IDs with sequential values from the missing list
+df['Company_ID'] = df['Company_ID'].ffill()  # Use ffill() directly
+remaining_missing_count = df['Company_ID'].isna().sum()
+
+if remaining_missing_count > 0:
+    # Fill any remaining NaN values directly from the missing list
+    df.loc[df['Company_ID'].isna(), 'Company_ID'] = missing_values[:remaining_missing_count]
+
+# Ensure all values are integers
+df['Company_ID'] = df['Company_ID'].astype(int)
+
+# Sort data by Company_ID and reset the index
+df = df.sort_values(by='Company_ID').reset_index(drop=True)
+
+# Fill missing values in Company_Profit with the mean of the column
+df['Company_Profit'] = df['Company_Profit'].fillna(df['Company_Profit'].mean())
+
+# Feature Engineering: Profit Category
+bins = [-float('inf'), 0, 10000, 50000, float('inf')]
+labels = ['Loss', 'Low', 'Medium', 'High']
+df['Profit_Category'] = pd.cut(df['Company_Profit'], bins=bins, labels=labels)
+
+# Standardizing the Company_Name column
+df['Company_Name'] = df['Company_Name'].str.strip()  # Remove leading and trailing whitespace
+df['Company_Name'] = df['Company_Name'].str.replace(r'[^a-zA-Z0-9\s]', '', regex=True)  # Remove special characters
+df['Company_Name'] = df['Company_Name'].str.replace(r'\s+', ' ', regex=True)  # Remove extra spaces between words
+df['Company_Name'] = df['Company_Name'].str.title()  # Convert to title case
+
+# Standardizing the Address column
+df['Address'] = df['Address'].str.strip()  # Remove leading and trailing whitespace
+df['Address'] = df['Address'].str.replace(r'\s+', ' ', regex=True)  # Remove extra spaces between words
+df['Address'] = df['Address'].str.title()  # Convert to title case for consistency
+
+# Remove duplicates in the Company_Name column
+df = df.drop_duplicates(subset='Company_Name')
+
+# Adjust pandas settings to show all rows and columns
+pd.set_option('display.max_rows', None)  # Display all rows
+pd.set_option('display.max_columns', None)  # Display all columns
+
+# Print the DataFrame with new features
+print(df)
+
+# Save the updated DataFrame to a new CSV file
+df.to_csv('updated_customers_data.csv', index=False)
