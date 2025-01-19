@@ -1,0 +1,45 @@
+import pandas as pd
+import numpy as np
+
+# Load the dataset
+df = pd.read_csv("/Users/gillianmondero/Downloads/transactions_data.csv").drop(columns=['Unnamed: 0'])
+
+# Reorder Transaction_ID and fill missing values
+df['Transaction_ID'] = range(1, len(df) + 1)
+df['Company_ID'] = df['Company_ID'].fillna(df['Company_ID'].mode()[0])
+df['Product_ID'] = df['Product_ID'].fillna(df['Product_ID'].mode()[0])
+df['Quantity'] = df['Quantity'].fillna(df['Quantity'].mode()[0])
+df['Product_Price'] = df['Product_Price'].fillna(df['Product_Price'].median())
+df['Product_Price'] = df['Product_Price'].round(2)
+
+# Standardize date format
+def standardize_date(date_str):
+    if pd.isna(date_str):
+        return np.nan
+    date_str = date_str.replace('/', '-')
+    formats = [
+        '%B %d, %Y', '%Y-%m-%d', '%d-%m-%Y', '%m-%d-%Y', '%m/%d/%Y', '%d/%m/%Y'
+    ]
+    for fmt in formats:
+        try:
+            return pd.to_datetime(date_str, format=fmt, errors='coerce').strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+    return np.nan
+
+df['Transaction_Date'] = df['Transaction_Date'].apply(standardize_date)
+
+# Count unparsable dates
+unparsable_dates_count = df['Transaction_Date'].isna().sum()
+print(f"Unparsable values count: {unparsable_dates_count}")
+
+# Calculate and standardize Total_Cost
+df['Total_Cost'] = (df['Quantity'] * df['Product_Price']).round(2)
+
+# Display the DataFrame
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+print(df)
+
+# Save the cleaned dataset
+df.to_csv("/Users/gillianmondero/Downloads/cleaned_transactions_data.csv", index=False)
