@@ -1,0 +1,24 @@
+import pandas as pd
+
+# Load the dataset
+df = pd.read_csv("/Users/gillianmondero/Downloads/products_data.csv")
+
+# Clean the Product_Price column to remove currency symbols and commas, and convert to numeric
+df['Product_Price'] = df['Product_Price'].replace(r'[^\d.]', '', regex=True).astype(float)
+
+# Replace missing Product_ID values with sequential numbers
+df['Product_ID'] = range(1, len(df) + 1)
+
+# Create a "Price_Category" column to classify products into price ranges
+price_bins = [0, 50000, 100000, 300000]  # Define price ranges
+price_labels = ['Low', 'Medium', 'High']  # Labels for each range
+df['Price_Category'] = pd.cut(df['Product_Price'], bins=price_bins, labels=price_labels, include_lowest=True)
+
+# Display the updated DataFrame
+pd.set_option('display.max_rows', None)  # Display all rows
+pd.set_option('display.max_columns', None)  # Display all columns
+print(df)
+
+# Save the updated DataFrame to a new CSV file
+df.to_csv('updated_products_data.csv', index=False)
+
